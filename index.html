@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QUẢN LÝ CÔNG VIỆC BẰNG AI</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <!-- ========== TRANG CHỦ ========== -->
+    <div id="landing-page" class="page active">
+        <div class="landing-wrapper">
+            <div class="landing-content">
+                <div class="logo-icon">
+                    <i class="fas fa-brain"></i>
+                </div>
+                <h1>QUẢN LÝ CÔNG VIỆC BẰNG AI</h1>
+                <p class="tagline">Tạo không gian riêng tư - Thông minh & Hiệu quả</p>
+                
+                <div class="features">
+                    <div class="feature">
+                        <i class="fas fa-robot"></i>
+                        <span>AI Thông Minh</span>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-lock"></i>
+                        <span>Riêng Tư</span>
+                    </div>
+                    <div class="feature">
+                        <i class="fas fa-infinity"></i>
+                        <span>Vĩnh Viễn</span>
+                    </div>
+                </div>
+                
+                <button id="btn-create" class="btn-create">
+                    <i class="fas fa-plus-circle"></i>
+                    TẠO KHÔNG GIAN RIÊNG
+                </button>
+                
+                <div class="link-box">
+                    <input type="text" id="link-output" readonly placeholder="Link sẽ xuất hiện ở đây...">
+                    <button id="btn-copy" class="btn-copy" title="Sao chép">
+                        <i class="fas fa-copy"></i>
+                    </button>
+                </div>
+                
+                <p class="hint"><i class="fas fa-info-circle"></i> Sao chép link và dán vào trình duyệt để sử dụng</p>
+            </div>
+            
+            <footer class="landing-footer">
+                Được tạo bởi: <strong>LamQuocHoan</strong>
+            </footer>
+        </div>
+    </div>
+
+    <!-- ========== TRANG DASHBOARD ========== -->
+    <div id="dashboard-page" class="page">
+        <!-- Modal Chào mừng -->
+        <div id="modal-welcome" class="modal">
+            <div class="modal-box welcome-box">
+                <div class="welcome-icon"><i class="fas fa-hand-sparkles"></i></div>
+                <h2>Xin chào bạn! 👋</h2>
+                <p>Mình là hệ thống quản lý công việc thông minh<br>được tạo bởi <strong>LamQuocHoan</strong></p>
+                <p class="question">Cậu tên gì thế? 😊</p>
+                <input type="text" id="input-username" placeholder="Nhập tên của bạn...">
+                <button id="btn-start" class="btn-primary">
+                    <i class="fas fa-rocket"></i> BẮT ĐẦU
+                </button>
+            </div>
+        </div>
+
+        <!-- Modal Hướng dẫn -->
+        <div id="modal-help" class="modal">
+            <div class="modal-box">
+                <button class="btn-close" data-close="modal-help"><i class="fas fa-times"></i></button>
+                <h2><i class="fas fa-question-circle"></i> Hướng Dẫn</h2>
+                <div class="help-content">
+                    <p>📝 Nhập công việc + thời gian → Nhấn <strong>[THÊM CÔNG VIỆC]</strong></p>
+                    <p>📚 <strong>LỊCH SỬ</strong>: Xem 4 tuần đã qua</p>
+                    <p>🌸 <strong>TƯƠNG LAI</strong>: Xem 4 tuần sắp tới</p>
+                    <p>⚠️ Công việc quá 4 tuần sẽ tự động xóa</p>
+                    <hr>
+                    <p class="author-note">Tôi là Lâm Quốc Hoàn, hi vọng giúp được bạn! 😄</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Lịch sử -->
+        <div id="modal-history" class="modal">
+            <div class="modal-box modal-large">
+                <button class="btn-close" data-close="modal-history"><i class="fas fa-arrow-left"></i> Trở lại</button>
+                <h2><i class="fas fa-book"></i> LỊCH SỬ</h2>
+                <div id="history-content" class="weeks-container"></div>
+            </div>
+        </div>
+
+        <!-- Modal Tương lai -->
+        <div id="modal-future" class="modal">
+            <div class="modal-box modal-large">
+                <button class="btn-close" data-close="modal-future"><i class="fas fa-arrow-left"></i> Trở lại</button>
+                <h2><i class="fas fa-seedling"></i> TƯƠNG LAI</h2>
+                <div id="future-content" class="weeks-container"></div>
+            </div>
+        </div>
+
+        <!-- Modal Xung đột -->
+        <div id="modal-conflict" class="modal">
+            <div class="modal-box">
+                <h2><i class="fas fa-exclamation-triangle"></i> Trùng lịch rồi!</h2>
+                <p class="conflict-msg">Ê, định phân thân à? 😅</p>
+                <div id="conflict-info" class="conflict-info"></div>
+                <div class="conflict-actions">
+                    <button id="btn-replace" class="btn-warning"><i class="fas fa-exchange-alt"></i> Thay thế</button>
+                    <button id="btn-cancel-conflict" class="btn-secondary"><i class="fas fa-edit"></i> Sửa lại</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Modal Chỉnh sửa -->
+        <div id="modal-edit" class="modal">
+            <div class="modal-box">
+                <h2><i class="fas fa-edit"></i> Chỉnh sửa công việc</h2>
+                <input type="text" id="input-edit" placeholder="Nhập lại thông tin...">
+                <div class="edit-actions">
+                    <button id="btn-save-edit" class="btn-primary"><i class="fas fa-save"></i> Lưu</button>
+                    <button id="btn-cancel-edit" class="btn-secondary"><i class="fas fa-times"></i> Hủy</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Context Menu -->
+        <div id="context-menu" class="context-menu">
+            <button id="ctx-edit"><i class="fas fa-edit"></i> Chỉnh sửa</button>
+            <button id="ctx-delete"><i class="fas fa-trash"></i> Tôi xóa công việc này nhé?</button>
+        </div>
+
+        <!-- Toast Undo -->
+        <div id="toast-undo" class="toast">
+            <span>Đã xóa công việc</span>
+            <button id="btn-undo"><i class="fas fa-undo"></i> Hoàn tác</button>
+        </div>
+
+        <!-- Loading -->
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>AI đang xử lý...</p>
+        </div>
+
+        <!-- Dashboard chính -->
+        <div class="dashboard-wrapper">
+            <!-- Nút help -->
+            <button id="btn-help" class="btn-help" title="Hướng dẫn">
+                <i class="fas fa-question"></i>
+            </button>
+
+            <!-- Thanh nhập liệu -->
+            <div class="input-bar">
+                <input type="text" id="input-task" placeholder="Hãy nhập công việc và thời gian cụ thể">
+                <button id="btn-add" class="btn-add">
+                    <i class="fas fa-plus"></i> THÊM CÔNG VIỆC
+                </button>
+            </div>
+
+            <!-- AI Message -->
+            <div class="ai-message-box">
+                <div class="ai-avatar"><i class="fas fa-robot"></i></div>
+                <div class="ai-bubble" id="ai-message">Chào cậu! Tui sẵn sàng giúp cậu quản lý công việc nè! 🎉</div>
+            </div>
+
+            <!-- Khu vực lịch -->
+            <div class="schedule-area">
+                <!-- Tuần này -->
+                <div class="schedule-block main-schedule">
+                    <h2 class="schedule-title">📅 TUẦN NÀY</h2>
+                    <div class="schedule-grid" id="grid-this-week"></div>
+                </div>
+
+                <!-- Tuần sau -->
+                <div class="schedule-block side-schedule">
+                    <h2 class="schedule-title">📆 TUẦN SAU</h2>
+                    <div class="schedule-grid mini" id="grid-next-week"></div>
+                </div>
+            </div>
+
+            <!-- Thanh dưới -->
+            <div class="bottom-bar">
+                <div class="datetime" id="datetime">
+                    <i class="fas fa-clock"></i>
+                    <span id="current-time"></span>
+                </div>
+
+                <div class="action-btns">
+                    <button id="btn-history" class="btn-action history">
+                        <i class="fas fa-book"></i> LỊCH SỬ
+                    </button>
+                    <button id="btn-future" class="btn-action future">
+                        <i class="fas fa-seedling"></i> TƯƠNG LAI
+                    </button>
+                </div>
+
+                <div class="credit">Được tạo bởi: <strong>LamQuocHoan</strong></div>
+            </div>
+        </div>
+
+        <!-- Container hiệu ứng -->
+        <div id="effects-container"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
