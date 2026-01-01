@@ -7,7 +7,7 @@
 // 🔑 CẤU HÌNH API - NHẬP KEY TẠI ĐÂY
 // ===============================
 const CONFIG = {
-    GEMINI_API_KEY: 'AIzaSyDBjTdRx528XjC58s_T5kdtuHdbQXaTez8',  // ← THAY API KEY VÀO ĐÂY
+    GEMINI_API_KEY: 'AIzaSyCriahGTiK_Uno8UX3XeSpWXaX7Imrt360',  // ← THAY API KEY VÀO ĐÂY
     API_URL: 'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'
 };
 
@@ -858,3 +858,4 @@ function getLunarDate(date) {
 // KẾT THÚC
 // ===============================
 console.log('🚀 Task Manager by LamQuocHoan - Loaded!');
+
