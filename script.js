@@ -195,6 +195,10 @@ function initDashboardEvents() {
 // ===============================
 // THÊM CÔNG VIỆC
 // ===============================
+// ===============================
+// 🤖 XỬ LÝ CÔNG VIỆC VỚI AI - PHIÊN BẢN MỚI
+// ===============================
+
 async function handleAddTask() {
     const input = document.getElementById('input-task');
     const text = input.value.trim();
@@ -205,77 +209,204 @@ async function handleAddTask() {
     }
     
     showLoading(true);
+    setAIMessage('Đợi tui phân tích chút nha... 🤔');
     
     try {
-        const parsed = await parseTaskWithAI(text);
+        // Lấy ngày hiện tại
+        const today = new Date();
+        const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+        const dayOfWeek = ['Chủ Nhật', 'Thứ 2', 'Thứ 3', 'Thứ 4', 'Thứ 5', 'Thứ 6', 'Thứ 7'][today.getDay()];
         
-        if (!parsed.success) {
-            setAIMessage(parsed.message);
+        // Tạo prompt chi tiết cho AI
+        const prompt = `Bạn là trợ lý phân tích công việc. Nhiệm vụ: Phân tích câu tiếng Việt và trích xuất thông tin.
+
+THÔNG TIN QUAN TRỌNG:
+- Hôm nay là: ${dayOfWeek}, ngày ${today.getDate()}/${today.getMonth() + 1}/${today.getFullYear()}
+- Ngày hôm nay dạng ISO: ${todayStr}
+
+QUY TẮC PHÂN TÍCH:
+1. "hôm nay" = ${todayStr}
+2. "ngày mai" = ngày tiếp theo
+3. "T2/Thứ 2" = Thứ Hai tuần này hoặc tuần sau (nếu đã qua)
+4. "T3/Thứ 3" = Thứ Ba, tương tự cho T4, T5, T6, T7, CN
+5. "2/1" hoặc "2/1/2026" = ngày 2 tháng 1 năm 2026
+6. "sáng" mặc định = 8:00, "chiều" = 14:00, "tối" = 19:00
+7. "20h-22h" = từ 20:00 đến 22:00
+8. "20h tới 22h" = từ 20:00 đến 22:00
+9. Nếu chỉ có giờ bắt đầu, giờ kết thúc = giờ bắt đầu + 1 tiếng
+
+CÂU CẦN PHÂN TÍCH: "${text}"
+
+TRẢ VỀ ĐÚNG FORMAT JSON (KHÔNG CÓ GÌ KHÁC):
+{
+  "success": true,
+  "taskName": "tên công việc ngắn gọn",
+  "date": "YYYY-MM-DD",
+  "startTime": "HH:MM",
+  "endTime": "HH:MM"
+}
+
+HOẶC nếu thiếu thông tin:
+{
+  "success": false,
+  "error": "mô tả thiếu gì"
+}
+
+CHỈ TRẢ VỀ JSON, KHÔNG GIẢI THÍCH GÌ THÊM.`;
+
+        // Gọi Gemini API
+        const response = await fetch(`${CONFIG.API_URL}?key=${CONFIG.GEMINI_API_KEY}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                    temperature: 0.1,
+                    maxOutputTokens: 500
+                }
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('API request failed');
+        }
+        
+        const data = await response.json();
+        
+        // Lấy text response
+        const responseText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+        
+        if (!responseText) {
+            throw new Error('Empty response');
+        }
+        
+        console.log('AI Response:', responseText); // Debug
+        
+        // Parse JSON từ response
+        const jsonMatch = responseText.match(/\{[\s\S]*?\}/);
+        if (!jsonMatch) {
+            throw new Error('No JSON found');
+        }
+        
+        const result = JSON.parse(jsonMatch[0]);
+        console.log('Parsed result:', result); // Debug
+        
+        // Xử lý kết quả
+        if (!result.success) {
+            const errorMsg = result.error || 'Thiếu thông tin';
+            setAIMessage(`${APP.userData.name || 'Bạn'} ơi, ${errorMsg}. Thử nhập kiểu: "Họp team 9h-11h ngày 5/1" nha! 📝`);
             showLoading(false);
             return;
         }
         
-        const validation = validateTaskTime(parsed.data);
+        // Validate dữ liệu
+        if (!result.taskName || !result.date || !result.startTime || !result.endTime) {
+            setAIMessage(`Tui cần biết: tên việc, ngày, giờ bắt đầu và kết thúc nha! 🤔`);
+            showLoading(false);
+            return;
+        }
+        
+        const taskData = {
+            name: result.taskName,
+            date: result.date,
+            startTime: result.startTime,
+            endTime: result.endTime
+        };
+        
+        // Kiểm tra ngày hợp lệ
+        const validation = validateTaskTime(taskData);
         if (!validation.valid) {
             setAIMessage(validation.message);
             showLoading(false);
             return;
         }
         
-        const conflict = checkConflict(parsed.data);
+        // Kiểm tra trùng lịch
+        const conflict = checkConflict(taskData);
         if (conflict) {
-            APP.pendingTask = parsed.data;
+            APP.pendingTask = taskData;
             APP.conflictTask = conflict;
             showConflictModal(conflict);
             showLoading(false);
             return;
         }
         
-        addTask(parsed.data);
+        // Thêm task thành công
+        addTask(taskData);
         input.value = '';
-        setAIMessage(`Tuyệt vời! Tui đã thêm "${parsed.data.name}" vào lịch rồi nè! 🎉`);
+        setAIMessage(`Tuyệt vời ${APP.userData.name || 'bạn'}! Đã thêm "${taskData.name}" vào ${formatDate(taskData.date)} lúc ${taskData.startTime}! 🎉`);
         
-    } catch (err) {
-        console.error(err);
-        setAIMessage('Úi, có lỗi rồi! Thử lại nha! 😢');
+    } catch (error) {
+        console.error('Error:', error);
+        setAIMessage(`Úi, có lỗi rồi! Thử nhập rõ hơn nha, ví dụ: "Học bài 20h-22h ngày 2/1" 😅`);
     }
     
     showLoading(false);
 }
 
-async function parseTaskWithAI(text) {
+function validateTaskTime(task) {
+    const taskDate = new Date(task.date);
+    taskDate.setHours(0, 0, 0, 0);
+    
     const today = new Date();
-    const prompt = `Phân tích công việc từ câu tiếng Việt. Trả về JSON:
-{"success":true,"data":{"name":"tên ngắn gọn","date":"YYYY-MM-DD","startTime":"HH:MM","endTime":"HH:MM"},"message":""}
-Nếu thiếu thông tin: {"success":false,"message":"câu nhắc dễ thương"}
-Hôm nay: ${today.toLocaleDateString('vi-VN')} (${DAY_NAMES[today.getDay() === 0 ? 6 : today.getDay() - 1]})
-Hiểu viết tắt: T2-CN, h=giờ, sg=sáng(8h), ch=chiều(14h), tối(19h)
-Câu: "${text}"`;
-
-    try {
-        const res = await fetch(`${CONFIG.API_URL}?key=${CONFIG.GEMINI_API_KEY}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-        });
-        
-        const data = await res.json();
-        const resText = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
-        const match = resText.match(/\{[\s\S]*\}/);
-        
-        if (match) {
-            const result = JSON.parse(match[0]);
-            if (result.success && result.data) {
-                result.data.name = result.data.name || 'Công việc';
-                return result;
-            }
-            return result;
-        }
-    } catch (e) {
-        console.error('AI Error:', e);
+    today.setHours(0, 0, 0, 0);
+    
+    const maxDate = new Date(today);
+    maxDate.setDate(maxDate.getDate() + 28);
+    
+    // Kiểm tra ngày hợp lệ
+    if (isNaN(taskDate.getTime())) {
+        return { valid: false, message: 'Ngày không hợp lệ! Thử lại nha 📅' };
     }
     
-    return { success: false, message: 'Tui không hiểu lắm. Nhập rõ hơn nha: "Công việc + giờ bắt đầu-kết thúc + ngày" 🤔' };
+    // Kiểm tra quá khứ
+    if (taskDate < today) {
+        return { valid: false, message: 'Ngày này qua rồi! Tui không quay ngược thời gian được đâu 😅' };
+    }
+    
+    // Kiểm tra quá xa
+    if (taskDate > maxDate) {
+        return { valid: false, message: 'Xa quá 4 tuần rồi! Gần gần thôi nha 📅' };
+    }
+    
+    // Kiểm tra giờ hợp lệ
+    const timeRegex = /^([01]?[0-9]|2[0-3]):[0-5][0-9]$/;
+    if (!timeRegex.test(task.startTime) || !timeRegex.test(task.endTime)) {
+        return { valid: false, message: 'Giờ không hợp lệ! Dùng format HH:MM nha ⏰' };
+    }
+    
+    return { valid: true };
+}
+
+function checkConflict(newTask) {
+    const toMin = (t) => {
+        const [h, m] = t.split(':').map(Number);
+        return h * 60 + (m || 0);
+    };
+    
+    return APP.userData.tasks.find(task => {
+        if (task.date !== newTask.date) return false;
+        const ns = toMin(newTask.startTime), ne = toMin(newTask.endTime);
+        const es = toMin(task.startTime), ee = toMin(task.endTime);
+        return ns < ee && ne > es;
+    });
+}
+
+function addTask(data) {
+    const task = {
+        id: Date.now().toString(),
+        name: data.name,
+        date: data.date,
+        startTime: data.startTime,
+        endTime: data.endTime,
+        color: Math.floor(Math.random() * 8),
+        createdAt: Date.now()
+    };
+    
+    APP.userData.tasks.push(task);
+    saveUserData();
+    renderSchedules();
+    createFireworks();
 }
 
 function validateTaskTime(task) {
@@ -727,4 +858,3 @@ function getLunarDate(date) {
 // KẾT THÚC
 // ===============================
 console.log('🚀 Task Manager by LamQuocHoan - Loaded!');
-
